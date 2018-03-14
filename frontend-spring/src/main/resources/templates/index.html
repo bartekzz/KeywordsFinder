@@ -1,0 +1,189 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Find keywords for URL | Keywordsfinder</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <style>
+        article {
+            margin: auto;
+            width: 50%;
+            text-align: center;
+        }
+
+        #urlForm, #loading, #keywords {
+            display : inline-block;
+        }
+
+        fieldset input {
+            margin-bottom: 20px !important;
+        }
+
+        span {
+            background-color: #faffbd;
+            padding: .5em 1em;
+            border-radius: 2px;
+            text-align: center;
+            vertical-align: middle;
+            margin-right: 5px;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid #3498db;
+            width: 60px;
+            height: 60px;
+            -webkit-animation: spin 2s linear infinite;
+            animation: spin 2s linear infinite;
+        }
+
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results-block {
+            width: 500px;
+        }
+
+        #error {
+            color: red;
+        }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/base-min.css">
+    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
+</head>
+<script type="application/javascript" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script>
+$(document).ready(function() {
+
+        var $form = $('#urlForm');
+        $form.on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                //url: $form.attr('action'),
+                url: '/',
+                type: 'post',
+                data: $form.serialize(),
+                beforeSend:function()
+                {
+                    $("#error").empty();
+                    $("#keywords").empty();
+                    $("#loading").append("<div class='loader'></div>")
+                    $('#urlField').attr('disabled', true);
+                    $('#submitButton').remove();
+                    $('#buttons').append("<button id='stopButton' class='pure-button'>Stop</button>");
+
+                },
+                success: function(response) {
+                    // if the response contains any errors, replace the form
+                    if (response.indexOf("error") > -1) {
+                        console.log("Submit (error): " + response);
+                        $('#error').append(response);
+                        $( ".loader" ).remove();
+                        $( "#stopButton" ).remove();
+                        $('#urlField').attr('disabled', false);
+                        $('.inputFields').append("<input type='submit' id='submitButton' class='pure-button pure-button-primary' value='Get keywords' />");
+                    } else {
+                        console.log("Submit: " + response);
+                        $('#keywords').append(response);
+                        $( ".loader" ).remove();
+                        $( "#stopButton" ).remove();
+                        $('#urlField').attr('disabled', false);
+                        $('.inputFields').append("<input type='submit' id='submitButton' class='pure-button pure-button-primary' value='Get keywords' />");
+                    }
+                }
+            });
+        });
+
+});
+</script>
+<script>
+function getContextPath() {
+    return window.location.pathname.substring(0, window.location.pathname.indexOf("/",2));
+}
+
+$(function() {
+    $("#buttons").on('click', '#stopButton', function() {
+        //alert(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2)));
+        //alert(location.host);
+                $.ajax({
+                    //url: getContextPath() + '/stop',
+                    url: '/stop',
+                    type: 'get',
+                    data: null,
+                    beforeSend:function()
+                    {
+                        $("#keywords").empty();
+                        $(".loader").remove();
+                        $("#stopButton").remove();
+                        //$('#error').append('<div class="error">Stopped!</div>');
+                        //$('.inputFields').append("<input type='submit' id='submitButton' class='pure-button pure-button-primary' value='Get keywords' />");
+
+                    },
+                    success: function(response) {
+                        // if the response contains any errors, replace the form
+                        if ($(response).find(".has-error").length > 0) {
+                            //$form.replaceWith(response);
+                            console.log("Stop log (error): " + response);
+                        } else {
+                            console.log("Stop log: " + response);
+                            //$('#urlField').attr('disabled', false);
+
+                            //$('.inputFields').append("<input type='submit' id='submitButton' class='pure-button pure-button-primary' value='Get keywords' />");
+                        }
+                    }
+                });
+    });
+});
+</script>
+<script type="text/javascript">
+    window.onload= function () {
+        document.getElementById('submitButton').disabled = true;
+        if(window.addEventListener) {
+            document.getElementById('urlField').addEventListener('change', loadXMLDoc, false);
+        } else if (window.attachEvent){
+            document.getElementById('urlField').attachEvent("onchange", loadXMLDoc);
+        }
+
+        function loadXMLDoc(){
+            if(document.getElementById('urlField').value != "") {
+                //alert('enabled!');
+                document.getElementById('submitButton').disabled = false;
+            } else {
+                //alert('disabled!');
+                document.getElementById('submitButton').disabled = true;
+            }
+        }
+    }
+</script>
+<body>
+<article>
+    <h2>Find top keywords for URL</h2>
+    <p><small>(English urls only)</small></p>
+    <div id="error"></div>
+<div id="info-form" th:fragment="info-form" xmlns:th="http://www.thymeleaf.org" th:remove="tag">
+    <form id="urlForm" class="pure-form pure-form-stacked" name="urlForm" th:action="@{/}" th:object="${index}" method="post">
+        <fieldset class="inputFields">
+        <div th:classappend="${#fields.hasErrors('url')}?has-error">
+            <input id="urlField" th:field="*{url}" type="text" placeholder="www.example.com" />
+        </div>
+        <input type="submit" id="submitButton" class="pure-button pure-button-primary" value="Get keywords" />
+        <div id="loading"></div>
+        </fieldset>
+    </form>
+</div>
+
+<div id="buttons"></div>
+<div id="keywords"></div>
+</article>
+</body>
+</html>
+
